@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Detector</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+
+  <body>
+    <main class="container">
+      <header>
+        <h1>Privacy Detector</h1>
+        <p id="current-site">Analisando página...</p>
+      </header>
+
+      <section class="metrics" aria-label="Resumo de privacidade">
+        <article class="metric">
+          <span class="metric-value" id="third-party-count">0</span>
+          <span class="metric-label">Domínios de terceiros</span>
+        </article>
+
+        <article class="metric">
+          <span class="metric-value" id="cookie-count">0</span>
+          <span class="metric-label">Cookies</span>
+        </article>
+
+        <article class="metric">
+          <span class="metric-value" id="storage-count">0</span>
+          <span class="metric-label">Armazenamentos</span>
+        </article>
+      </section>
+
+      <section class="score">
+        <h2>Pontuação de privacidade</h2>
+        <p>
+          <span id="privacy-score">--</span>
+          <span>/100</span>
+        </p>
+      </section>
+
+      <p id="status-message">Nenhum dado coletado ainda.</p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

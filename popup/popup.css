@@ -1,0 +1,94 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+  background-color: #f3f4f6;
+}
+
+.container {
+  padding: 20px;
+}
+
+header {
+  margin-bottom: 18px;
+}
+
+h1 {
+  margin: 0 0 6px;
+  color: #4c1d95;
+  font-size: 22px;
+}
+
+#current-site {
+  margin: 0;
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.metric {
+  display: flex;
+  min-height: 90px;
+  padding: 12px 8px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.metric-value {
+  margin-bottom: 6px;
+  color: #4c1d95;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.metric-label {
+  color: #4b5563;
+  font-size: 11px;
+}
+
+.score {
+  margin-top: 12px;
+  padding: 14px;
+  text-align: center;
+  border-radius: 8px;
+  background-color: #4c1d95;
+  color: #ffffff;
+}
+
+.score h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.score p {
+  margin: 8px 0 0;
+}
+
+#privacy-score {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+#status-message {
+  margin: 14px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  text-align: center;
+}
