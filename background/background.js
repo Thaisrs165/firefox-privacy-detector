@@ -1,4 +1,5 @@
 const tabData = new Map();
+const pendingBounceData = new Map();
 
 const MULTI_LEVEL_SUFFIXES = new Set([
   "com.br",
@@ -10,6 +11,34 @@ const MULTI_LEVEL_SUFFIXES = new Set([
   "com.au",
   "net.au",
   "co.jp"
+]);
+
+const TRACKING_PARAMETER_NAMES = new Set([
+  "fbclid",
+  "fb_source",
+  "gclid",
+  "dclid",
+  "msclkid",
+  "ttclid",
+  "twclid",
+  "yclid",
+  "igshid",
+  "mc_eid",
+  "_ga",
+  "uid",
+  "uuid",
+  "cid",
+  "user_id",
+  "userid",
+  "visitor_id",
+  "visitorid",
+  "client_id",
+  "clientid",
+  "click_id",
+  "clickid",
+  "tracking_id",
+  "trackingid",
+  "session_id"
 ]);
 
 function getHostname(url) {
@@ -42,7 +71,72 @@ function getSiteDomain(hostname) {
   return parts.slice(-2).join(".");
 }
 
-function parseSetCookieHeader(headerValue, requestDomain, pageDomain) {
+function isTrackingParameter(parameterName) {
+  const normalizedName = parameterName.toLowerCase();
+
+  return (
+    normalizedName.startsWith("utm_") ||
+    normalizedName.includes("bounceuid") ||
+    TRACKING_PARAMETER_NAMES.has(normalizedName)
+  );
+}
+
+function getTrackingParameters(url) {
+  try {
+    const parsedUrl = new URL(url);
+    const parameters = [];
+
+    for (const [name, value] of parsedUrl.searchParams) {
+      if (!isTrackingParameter(name)) {
+        continue;
+      }
+
+      parameters.push({
+        name,
+        valueLength: value.length
+      });
+    }
+
+    return parameters;
+  } catch {
+    return [];
+  }
+}
+
+function addTrackingParameters(
+  tracking,
+  url,
+  domain,
+  context
+) {
+  const parameters = getTrackingParameters(url);
+
+  for (const parameter of parameters) {
+    const alreadyRecorded = tracking.parameters.some(
+      (recordedParameter) =>
+        recordedParameter.name === parameter.name &&
+        recordedParameter.domain === domain &&
+        recordedParameter.context === context
+    );
+
+    if (alreadyRecorded) {
+      continue;
+    }
+
+    tracking.parameters.push({
+      name: parameter.name,
+      valueLength: parameter.valueLength,
+      domain,
+      context
+    });
+  }
+}
+
+function parseSetCookieHeader(
+  headerValue,
+  requestDomain,
+  pageDomain
+) {
   if (!headerValue) {
     return null;
   }
@@ -112,7 +206,6 @@ function parseSetCookieHeader(headerValue, requestDomain, pageDomain) {
     getSiteDomain(declaredDomain) || requestDomain;
 
   const cookiePath = attributes.get("path") || "/";
-
   const isThirdParty = cookieDomain !== pageDomain;
 
   const hasPositiveMaxAge =
@@ -140,13 +233,15 @@ async function saveTabData(tabId) {
 
   await browser.storage.local.set({
     [`tab-${tabId}`]: {
-        pageDomain: data.pageDomain,
-        thirdPartyDomains: [...data.thirdPartyDomains],
-        cookies: [...data.cookies.values()],
-        storage: data.storage,
-        canvas: data.canvas
+      pageDomain: data.pageDomain,
+      pageHostname: data.pageHostname,
+      thirdPartyDomains: [...data.thirdPartyDomains],
+      cookies: [...data.cookies.values()],
+      storage: data.storage,
+      canvas: data.canvas,
+      tracking: data.tracking
     }
-    });
+  });
 }
 
 browser.webRequest.onBeforeRequest.addListener(
@@ -165,20 +260,77 @@ browser.webRequest.onBeforeRequest.addListener(
     }
 
     if (requestDetails.type === "main_frame") {
+      const previousData = tabData.get(tabId);
+
+      const navigationParameters = getTrackingParameters(
+        requestDetails.url
+      );
+
+      const hasIdentifierParameter =
+        navigationParameters.some(
+          (parameter) =>
+            !parameter.name.toLowerCase().startsWith("utm_")
+        );
+
+      const navigationBounceDetected = Boolean(
+        previousData?.pageHostname &&
+        previousData.pageHostname !== requestHostname &&
+        hasIdentifierParameter
+      );
+
+      const pendingBounce = pendingBounceData.get(tabId);
+
+      const pendingBounceIsValid =
+        pendingBounce &&
+        pendingBounce.destinationHostname === requestHostname &&
+        Date.now() - pendingBounce.detectedAt <= 10000;
+
+      const tracking = {
+        parameters: pendingBounceIsValid
+          ? [...pendingBounce.parameters]
+          : [],
+        bounceDetected: Boolean(
+          pendingBounceIsValid || navigationBounceDetected
+        ),
+        bounceDomains: pendingBounceIsValid
+          ? [...pendingBounce.bounceDomains]
+          : navigationBounceDetected
+            ? [previousData.pageHostname]
+            : [],
+        redirectChain: pendingBounceIsValid
+          ? [...pendingBounce.redirectChain]
+          : navigationBounceDetected
+            ? [previousData.pageHostname, requestHostname]
+            : []
+      };
+
+      if (pendingBounce) {
+        pendingBounceData.delete(tabId);
+      }
+
+      addTrackingParameters(
+        tracking,
+        requestDetails.url,
+        requestDomain,
+        "navigation"
+      );
+
       tabData.set(tabId, {
         pageDomain: requestDomain,
+        pageHostname: requestHostname,
         thirdPartyDomains: new Set(),
         cookies: new Map(),
         storage: {
-            localStorage: [],
-            sessionStorage: [],
-            indexedDB: []
+          localStorage: [],
+          sessionStorage: [],
+          indexedDB: []
         },
         canvas: {
-            detected: false,
-            methods: []
-        }
-        });
+          detected: false,
+          methods: []
+        },
+        tracking
+      });
 
       saveTabData(tabId).catch(console.error);
       return;
@@ -190,15 +342,140 @@ browser.webRequest.onBeforeRequest.addListener(
       return;
     }
 
+    let dataChanged = false;
+
     if (requestDomain !== data.pageDomain) {
       const previousSize = data.thirdPartyDomains.size;
 
       data.thirdPartyDomains.add(requestDomain);
 
       if (data.thirdPartyDomains.size !== previousSize) {
-        saveTabData(tabId).catch(console.error);
+        dataChanged = true;
       }
     }
+
+    const previousParameterCount =
+      data.tracking.parameters.length;
+
+    addTrackingParameters(
+      data.tracking,
+      requestDetails.url,
+      requestDomain,
+      requestDetails.type
+    );
+
+    if (
+      data.tracking.parameters.length !==
+      previousParameterCount
+    ) {
+      dataChanged = true;
+    }
+
+    if (dataChanged) {
+      saveTabData(tabId).catch(console.error);
+    }
+  },
+  {
+    urls: ["<all_urls>"]
+  }
+);
+
+browser.webRequest.onBeforeRedirect.addListener(
+  (requestDetails) => {
+    if (
+      requestDetails.tabId < 0 ||
+      requestDetails.type !== "main_frame" ||
+      !requestDetails.redirectUrl
+    ) {
+      return;
+    }
+
+    const sourceHostname = getHostname(requestDetails.url);
+    const destinationHostname = getHostname(
+      requestDetails.redirectUrl
+    );
+
+    if (
+      !sourceHostname ||
+      !destinationHostname ||
+      sourceHostname === destinationHostname
+    ) {
+      return;
+    }
+
+    const sourceParameters = getTrackingParameters(
+      requestDetails.url
+    );
+
+    const destinationParameters = getTrackingParameters(
+      requestDetails.redirectUrl
+    );
+
+    const redirectParameters = [
+      ...sourceParameters,
+      ...destinationParameters
+    ];
+
+    if (redirectParameters.length === 0) {
+      return;
+    }
+
+    const currentData = tabData.get(requestDetails.tabId);
+    const previousTracking = currentData?.tracking;
+
+    const bounceDomains = new Set(
+      previousTracking?.bounceDomains || []
+    );
+
+    bounceDomains.add(sourceHostname);
+
+    const redirectChain = [
+      ...(previousTracking?.redirectChain || [])
+    ];
+
+    if (
+      redirectChain[redirectChain.length - 1] !==
+      sourceHostname
+    ) {
+      redirectChain.push(sourceHostname);
+    }
+
+    redirectChain.push(destinationHostname);
+
+    const parameters = [
+      ...(previousTracking?.parameters || [])
+    ];
+
+    for (const parameter of redirectParameters) {
+      const parameterDomain =
+        destinationParameters.includes(parameter)
+          ? destinationHostname
+          : sourceHostname;
+
+      const alreadyRecorded = parameters.some(
+        (recordedParameter) =>
+          recordedParameter.name === parameter.name &&
+          recordedParameter.domain === parameterDomain &&
+          recordedParameter.context === "redirect"
+      );
+
+      if (!alreadyRecorded) {
+        parameters.push({
+          name: parameter.name,
+          valueLength: parameter.valueLength,
+          domain: parameterDomain,
+          context: "redirect"
+        });
+      }
+    }
+
+    pendingBounceData.set(requestDetails.tabId, {
+      destinationHostname,
+      detectedAt: Date.now(),
+      parameters,
+      bounceDomains: [...bounceDomains],
+      redirectChain
+    });
   },
   {
     urls: ["<all_urls>"]
@@ -221,7 +498,8 @@ browser.webRequest.onHeadersReceived.addListener(
       return;
     }
 
-    const responseHeaders = requestDetails.responseHeaders || [];
+    const responseHeaders =
+      requestDetails.responseHeaders || [];
 
     const setCookieHeaders = responseHeaders.filter(
       (header) =>
@@ -281,7 +559,9 @@ browser.runtime.onMessage.addListener((message, sender) => {
     message.storage
   ) {
     data.storage = {
-      localStorage: Array.isArray(message.storage.localStorage)
+      localStorage: Array.isArray(
+        message.storage.localStorage
+      )
         ? message.storage.localStorage
         : [],
       sessionStorage: Array.isArray(
@@ -289,7 +569,9 @@ browser.runtime.onMessage.addListener((message, sender) => {
       )
         ? message.storage.sessionStorage
         : [],
-      indexedDB: Array.isArray(message.storage.indexedDB)
+      indexedDB: Array.isArray(
+        message.storage.indexedDB
+      )
         ? message.storage.indexedDB
         : []
     };
@@ -320,5 +602,6 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
 browser.tabs.onRemoved.addListener((tabId) => {
   tabData.delete(tabId);
+  pendingBounceData.delete(tabId);
   browser.storage.local.remove(`tab-${tabId}`);
 });

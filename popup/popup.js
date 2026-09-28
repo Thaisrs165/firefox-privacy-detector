@@ -261,6 +261,103 @@ function renderCanvas(canvas = {}) {
   }
 }
 
+function renderTracking(tracking = {}) {
+  const countElement = document.getElementById(
+    "tracking-parameter-count"
+  );
+  const bounceElement = document.getElementById(
+    "bounce-status"
+  );
+  const redirectDetailsElement = document.getElementById(
+    "redirect-details"
+  );
+  const redirectChainElement = document.getElementById(
+    "redirect-chain"
+  );
+  const listElement = document.getElementById(
+    "tracking-parameter-list"
+  );
+
+  const parameters = Array.isArray(tracking.parameters)
+    ? tracking.parameters
+    : [];
+
+  const redirectChain = Array.isArray(
+    tracking.redirectChain
+  )
+    ? tracking.redirectChain
+    : [];
+
+  const bounceDetected =
+    tracking.bounceDetected === true;
+
+  countElement.textContent = parameters.length;
+
+  bounceElement.textContent = bounceDetected
+    ? "Possível"
+    : "Não";
+
+  bounceElement.classList.toggle(
+    "detected",
+    bounceDetected
+  );
+
+  redirectDetailsElement.hidden =
+    !bounceDetected || redirectChain.length === 0;
+
+  redirectChainElement.textContent =
+    redirectChain.join(" → ");
+
+  listElement.replaceChildren();
+
+  if (parameters.length === 0) {
+    const emptyItem = document.createElement("li");
+
+    emptyItem.className = "empty-state";
+    emptyItem.textContent =
+      "Nenhum parâmetro de rastreamento detectado.";
+
+    listElement.appendChild(emptyItem);
+    return;
+  }
+
+  const sortedParameters = [...parameters].sort(
+    (firstParameter, secondParameter) => {
+      const nameComparison =
+        firstParameter.name.localeCompare(
+          secondParameter.name
+        );
+
+      if (nameComparison !== 0) {
+        return nameComparison;
+      }
+
+      return firstParameter.domain.localeCompare(
+        secondParameter.domain
+      );
+    }
+  );
+
+  for (const parameter of sortedParameters) {
+    const listItem = document.createElement("li");
+
+    const nameElement = document.createElement("span");
+    nameElement.className =
+      "tracking-parameter-name";
+    nameElement.textContent = parameter.name;
+
+    const infoElement = document.createElement("span");
+    infoElement.className =
+      "tracking-parameter-info";
+    infoElement.textContent =
+      `${parameter.domain} · ${parameter.context} · ` +
+      `${parameter.valueLength} caracteres`;
+
+    listItem.append(nameElement, infoElement);
+    listElement.appendChild(listItem);
+  }
+}
+
 async function loadPageData() {
   const siteElement = document.getElementById("current-site");
   const thirdPartyElement = document.getElementById(
@@ -302,6 +399,7 @@ async function loadPageData() {
       renderCookies([]);
       renderStorage();
       renderCanvas();
+      renderTracking();
 
       statusElement.textContent =
         "Recarregue a página para iniciar a análise.";
@@ -320,6 +418,7 @@ async function loadPageData() {
 
     const storage = pageData.storage || {};
     const canvas = pageData.canvas || {};
+    const tracking = pageData.tracking || {};
 
     const storageCount =
       (Array.isArray(storage.localStorage)
@@ -338,6 +437,7 @@ async function loadPageData() {
     renderCookies(cookies);
     renderStorage(storage);
     renderCanvas(canvas);
+    renderTracking(tracking);
 
     statusElement.textContent =
       `${thirdPartyDomains.length} domínios externos, ` +
@@ -351,6 +451,7 @@ async function loadPageData() {
     renderCookies([]);
     renderStorage();
     renderCanvas();
+    renderTracking();
 
     statusElement.textContent = error.message;
   }

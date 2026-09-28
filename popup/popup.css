@@ -396,3 +396,112 @@ body {
   font-style: italic;
   text-align: center;
 }
+
+.tracking-details {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.tracking-details h2 {
+  margin: 0 0 10px;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.tracking-summary {
+  display: grid;
+  margin-bottom: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.tracking-category {
+  display: flex;
+  min-width: 0;
+  padding: 8px;
+  align-items: center;
+  flex-direction: column;
+  border-radius: 5px;
+  background-color: #f3f4f6;
+}
+
+.tracking-category span {
+  color: #4c1d95;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.tracking-category small {
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 10px;
+  text-align: center;
+}
+
+#bounce-status.detected {
+  color: #b91c1c;
+}
+
+.redirect-details {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 5px;
+  background-color: #fef2f2;
+  color: #991b1b;
+  font-size: 10px;
+}
+
+.redirect-details strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+#redirect-chain {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+#tracking-parameter-list {
+  max-height: 140px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+#tracking-parameter-list li {
+  margin-bottom: 6px;
+  padding: 8px;
+  border-radius: 5px;
+  background-color: #f3f4f6;
+}
+
+#tracking-parameter-list li:last-child {
+  margin-bottom: 0;
+}
+
+#tracking-parameter-list .empty-state {
+  color: #6b7280;
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
+.tracking-parameter-name {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #374151;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.tracking-parameter-info {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  color: #6b7280;
+  font-size: 10px;
+}
