@@ -206,6 +206,61 @@ function renderStorage(storage = {}) {
   }
 }
 
+function renderCanvas(canvas = {}) {
+  const statusElement = document.getElementById("canvas-status");
+  const indicatorElement = document.getElementById(
+    "canvas-indicator"
+  );
+  const descriptionElement = document.getElementById(
+    "canvas-description"
+  );
+  const listElement = document.getElementById(
+    "canvas-method-list"
+  );
+
+  const methods = Array.isArray(canvas.methods)
+    ? canvas.methods
+    : [];
+
+  const detected =
+    canvas.detected === true || methods.length > 0;
+
+  statusElement.classList.toggle("detected", detected);
+
+  indicatorElement.textContent = detected
+    ? "Possível fingerprinting detectado"
+    : "Não detectado";
+
+  descriptionElement.textContent = detected
+    ? "A página realizou operações de leitura ou exportação de canvas."
+    : "Nenhuma leitura suspeita de canvas foi observada.";
+
+  listElement.replaceChildren();
+
+  if (methods.length === 0) {
+    const emptyItem = document.createElement("li");
+
+    emptyItem.className = "empty-state";
+    emptyItem.textContent =
+      "Nenhum método de leitura detectado.";
+
+    listElement.appendChild(emptyItem);
+    return;
+  }
+
+  const sortedMethods = [...methods].sort(
+    (firstMethod, secondMethod) =>
+      firstMethod.localeCompare(secondMethod)
+  );
+
+  for (const method of sortedMethods) {
+    const listItem = document.createElement("li");
+
+    listItem.textContent = method;
+    listElement.appendChild(listItem);
+  }
+}
+
 async function loadPageData() {
   const siteElement = document.getElementById("current-site");
   const thirdPartyElement = document.getElementById(
@@ -246,6 +301,7 @@ async function loadPageData() {
       renderThirdPartyDomains([]);
       renderCookies([]);
       renderStorage();
+      renderCanvas();
 
       statusElement.textContent =
         "Recarregue a página para iniciar a análise.";
@@ -263,6 +319,7 @@ async function loadPageData() {
       : [];
 
     const storage = pageData.storage || {};
+    const canvas = pageData.canvas || {};
 
     const storageCount =
       (Array.isArray(storage.localStorage)
@@ -280,6 +337,7 @@ async function loadPageData() {
     renderThirdPartyDomains(thirdPartyDomains);
     renderCookies(cookies);
     renderStorage(storage);
+    renderCanvas(canvas);
 
     statusElement.textContent =
       `${thirdPartyDomains.length} domínios externos, ` +
@@ -292,6 +350,7 @@ async function loadPageData() {
     renderThirdPartyDomains([]);
     renderCookies([]);
     renderStorage();
+    renderCanvas();
 
     statusElement.textContent = error.message;
   }

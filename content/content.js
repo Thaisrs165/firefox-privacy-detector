@@ -1,3 +1,35 @@
+window.addEventListener("message", (event) => {
+  if (
+    event.source !== window ||
+    event.origin !== window.location.origin
+  ) {
+    return;
+  }
+
+  const message = event.data;
+
+  if (
+    !message ||
+    message.source !== "privacy-detector" ||
+    message.type !== "canvas-fingerprint-signal" ||
+    typeof message.method !== "string"
+  ) {
+    return;
+  }
+
+  browser.runtime
+    .sendMessage({
+      type: "canvas-fingerprint-signal",
+      method: message.method
+    })
+    .catch((error) => {
+      console.error(
+        "Não foi possível enviar o alerta de canvas:",
+        error
+      );
+    });
+});
+
 function getStorageKeys(storage) {
   const keys = [];
 

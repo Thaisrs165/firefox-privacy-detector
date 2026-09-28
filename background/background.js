@@ -140,12 +140,13 @@ async function saveTabData(tabId) {
 
   await browser.storage.local.set({
     [`tab-${tabId}`]: {
-      pageDomain: data.pageDomain,
-      thirdPartyDomains: [...data.thirdPartyDomains],
-      cookies: [...data.cookies.values()],
-      storage: data.storage
+        pageDomain: data.pageDomain,
+        thirdPartyDomains: [...data.thirdPartyDomains],
+        cookies: [...data.cookies.values()],
+        storage: data.storage,
+        canvas: data.canvas
     }
-  });
+    });
 }
 
 browser.webRequest.onBeforeRequest.addListener(
@@ -172,6 +173,10 @@ browser.webRequest.onBeforeRequest.addListener(
             localStorage: [],
             sessionStorage: [],
             indexedDB: []
+        },
+        canvas: {
+            detected: false,
+            methods: []
         }
         });
 
@@ -260,33 +265,57 @@ browser.webRequest.onHeadersReceived.addListener(
 );
 
 browser.runtime.onMessage.addListener((message, sender) => {
+  if (!sender.tab || sender.tab.id === undefined) {
+    return;
+  }
+
+  const tabId = sender.tab.id;
+  const data = tabData.get(tabId);
+
+  if (!data) {
+    return;
+  }
+
   if (
-    message.type !== "client-storage-report" ||
-    !sender.tab ||
-    sender.tab.id === undefined
+    message.type === "client-storage-report" &&
+    message.storage
   ) {
-    return;
+    data.storage = {
+      localStorage: Array.isArray(message.storage.localStorage)
+        ? message.storage.localStorage
+        : [],
+      sessionStorage: Array.isArray(
+        message.storage.sessionStorage
+      )
+        ? message.storage.sessionStorage
+        : [],
+      indexedDB: Array.isArray(message.storage.indexedDB)
+        ? message.storage.indexedDB
+        : []
+    };
+
+    return saveTabData(tabId);
   }
 
-  const data = tabData.get(sender.tab.id);
+  if (
+    message.type === "canvas-fingerprint-signal" &&
+    typeof message.method === "string"
+  ) {
+    if (!data.canvas) {
+      data.canvas = {
+        detected: false,
+        methods: []
+      };
+    }
 
-  if (!data || !message.storage) {
-    return;
+    data.canvas.detected = true;
+
+    if (!data.canvas.methods.includes(message.method)) {
+      data.canvas.methods.push(message.method);
+    }
+
+    return saveTabData(tabId);
   }
-
-  data.storage = {
-    localStorage: Array.isArray(message.storage.localStorage)
-      ? message.storage.localStorage
-      : [],
-    sessionStorage: Array.isArray(message.storage.sessionStorage)
-      ? message.storage.sessionStorage
-      : [],
-    indexedDB: Array.isArray(message.storage.indexedDB)
-      ? message.storage.indexedDB
-      : []
-  };
-
-  return saveTabData(sender.tab.id);
 });
 
 browser.tabs.onRemoved.addListener((tabId) => {
