@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Privacy Detector",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Firefox extension for detecting web trackers and privacy threats.",
   "permissions": [
     "tabs",
@@ -16,6 +16,17 @@
       "background/background.js"
     ]
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_title": "Privacy Detector",
     "default_popup": "popup/popup.html"

@@ -235,3 +235,93 @@ body {
   color: #4c1d95;
   font-size: 9px;
 }
+
+.storage-details {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.storage-details h2 {
+  margin: 0 0 10px;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.storage-summary {
+  display: grid;
+  margin-bottom: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.storage-category {
+  display: flex;
+  min-width: 0;
+  padding: 8px 4px;
+  align-items: center;
+  flex-direction: column;
+  border-radius: 5px;
+  background-color: #f3f4f6;
+}
+
+.storage-category span {
+  color: #4c1d95;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.storage-category small {
+  max-width: 100%;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#storage-list {
+  max-height: 140px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+#storage-list li {
+  margin-bottom: 6px;
+  padding: 8px;
+  border-radius: 5px;
+  background-color: #f3f4f6;
+}
+
+#storage-list li:last-child {
+  margin-bottom: 0;
+}
+
+#storage-list .empty-state {
+  color: #6b7280;
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
+.storage-name {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #374151;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.storage-type {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background-color: #ddd6fe;
+  color: #4c1d95;
+  font-size: 9px;
+}

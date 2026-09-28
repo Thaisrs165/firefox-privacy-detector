@@ -139,11 +139,12 @@ async function saveTabData(tabId) {
   }
 
   await browser.storage.local.set({
-  [`tab-${tabId}`]: {
-    pageDomain: data.pageDomain,
-    thirdPartyDomains: [...data.thirdPartyDomains],
-    cookies: [...data.cookies.values()]
-  }
+    [`tab-${tabId}`]: {
+      pageDomain: data.pageDomain,
+      thirdPartyDomains: [...data.thirdPartyDomains],
+      cookies: [...data.cookies.values()],
+      storage: data.storage
+    }
   });
 }
 
@@ -166,8 +167,13 @@ browser.webRequest.onBeforeRequest.addListener(
       tabData.set(tabId, {
         pageDomain: requestDomain,
         thirdPartyDomains: new Set(),
-        cookies: new Map()
-      });
+        cookies: new Map(),
+        storage: {
+            localStorage: [],
+            sessionStorage: [],
+            indexedDB: []
+        }
+        });
 
       saveTabData(tabId).catch(console.error);
       return;
@@ -252,6 +258,36 @@ browser.webRequest.onHeadersReceived.addListener(
   },
   ["responseHeaders"]
 );
+
+browser.runtime.onMessage.addListener((message, sender) => {
+  if (
+    message.type !== "client-storage-report" ||
+    !sender.tab ||
+    sender.tab.id === undefined
+  ) {
+    return;
+  }
+
+  const data = tabData.get(sender.tab.id);
+
+  if (!data || !message.storage) {
+    return;
+  }
+
+  data.storage = {
+    localStorage: Array.isArray(message.storage.localStorage)
+      ? message.storage.localStorage
+      : [],
+    sessionStorage: Array.isArray(message.storage.sessionStorage)
+      ? message.storage.sessionStorage
+      : [],
+    indexedDB: Array.isArray(message.storage.indexedDB)
+      ? message.storage.indexedDB
+      : []
+  };
+
+  return saveTabData(sender.tab.id);
+});
 
 browser.tabs.onRemoved.addListener((tabId) => {
   tabData.delete(tabId);
