@@ -13,8 +13,9 @@ function renderThirdPartyDomains(domains) {
     return;
   }
 
-  const sortedDomains = [...domains].sort((firstDomain, secondDomain) =>
-    firstDomain.localeCompare(secondDomain)
+  const sortedDomains = [...domains].sort(
+    (firstDomain, secondDomain) =>
+      firstDomain.localeCompare(secondDomain)
   );
 
   for (const domain of sortedDomains) {
@@ -75,17 +76,22 @@ function renderCookies(cookies) {
     return;
   }
 
-  const sortedCookies = [...cookies].sort((firstCookie, secondCookie) => {
-    const domainComparison = firstCookie.domain.localeCompare(
-      secondCookie.domain
-    );
+  const sortedCookies = [...cookies].sort(
+    (firstCookie, secondCookie) => {
+      const domainComparison =
+        firstCookie.domain.localeCompare(
+          secondCookie.domain
+        );
 
-    if (domainComparison !== 0) {
-      return domainComparison;
+      if (domainComparison !== 0) {
+        return domainComparison;
+      }
+
+      return firstCookie.name.localeCompare(
+        secondCookie.name
+      );
     }
-
-    return firstCookie.name.localeCompare(secondCookie.name);
-  });
+  );
 
   for (const cookie of sortedCookies) {
     const listItem = document.createElement("li");
@@ -116,7 +122,12 @@ function renderCookies(cookies) {
         : "Sessão";
 
     tagsElement.append(partyTag, durationTag);
-    listItem.append(nameElement, domainElement, tagsElement);
+    listItem.append(
+      nameElement,
+      domainElement,
+      tagsElement
+    );
+
     listElement.appendChild(listItem);
   }
 }
@@ -134,11 +145,15 @@ function renderStorage(storage = {}) {
   );
   const listElement = document.getElementById("storage-list");
 
-  const localStorageKeys = Array.isArray(storage.localStorage)
+  const localStorageKeys = Array.isArray(
+    storage.localStorage
+  )
     ? storage.localStorage
     : [];
 
-  const sessionStorageKeys = Array.isArray(storage.sessionStorage)
+  const sessionStorageKeys = Array.isArray(
+    storage.sessionStorage
+  )
     ? storage.sessionStorage
     : [];
 
@@ -172,7 +187,8 @@ function renderStorage(storage = {}) {
     const emptyItem = document.createElement("li");
 
     emptyItem.className = "empty-state";
-    emptyItem.textContent = "Nenhum armazenamento detectado.";
+    emptyItem.textContent =
+      "Nenhum armazenamento detectado.";
 
     listElement.appendChild(emptyItem);
     return;
@@ -187,7 +203,9 @@ function renderStorage(storage = {}) {
       return typeComparison;
     }
 
-    return firstEntry.name.localeCompare(secondEntry.name);
+    return firstEntry.name.localeCompare(
+      secondEntry.name
+    );
   });
 
   for (const entry of entries) {
@@ -207,7 +225,9 @@ function renderStorage(storage = {}) {
 }
 
 function renderCanvas(canvas = {}) {
-  const statusElement = document.getElementById("canvas-status");
+  const statusElement = document.getElementById(
+    "canvas-status"
+  );
   const indicatorElement = document.getElementById(
     "canvas-indicator"
   );
@@ -349,6 +369,7 @@ function renderTracking(tracking = {}) {
     const infoElement = document.createElement("span");
     infoElement.className =
       "tracking-parameter-info";
+
     infoElement.textContent =
       `${parameter.domain} · ${parameter.context} · ` +
       `${parameter.valueLength} caracteres`;
@@ -358,12 +379,120 @@ function renderTracking(tracking = {}) {
   }
 }
 
+function renderSecurity(security = {}) {
+  const statusElement = document.getElementById(
+    "security-status"
+  );
+  const indicatorElement = document.getElementById(
+    "security-indicator"
+  );
+  const descriptionElement = document.getElementById(
+    "security-description"
+  );
+  const listElement = document.getElementById(
+    "security-indicator-list"
+  );
+
+  const indicators = Array.isArray(security.indicators)
+    ? security.indicators
+    : [];
+
+  const detected =
+    security.detected === true || indicators.length > 0;
+
+  statusElement.classList.toggle("detected", detected);
+
+  indicatorElement.textContent = detected
+    ? "Possível risco detectado"
+    : "Não detectado";
+
+  descriptionElement.textContent = detected
+    ? "A página apresentou comportamentos associados a hijacking ou hook."
+    : "Nenhum comportamento suspeito foi observado.";
+
+  listElement.replaceChildren();
+
+  if (indicators.length === 0) {
+    const emptyItem = document.createElement("li");
+
+    emptyItem.className = "empty-state";
+    emptyItem.textContent =
+      "Nenhum indicador de segurança detectado.";
+
+    listElement.appendChild(emptyItem);
+    return;
+  }
+
+  const indicatorLabels = {
+    "websocket-connection":
+      "WebSocket com domínio terceiro",
+    "event-source-connection":
+      "EventSource com domínio terceiro",
+    "persistent-polling":
+      "Polling persistente para domínio terceiro",
+    "global-object-modification":
+      "Objeto global modificado"
+  };
+
+  for (const indicator of indicators) {
+    const listItem = document.createElement("li");
+
+    const nameElement = document.createElement("span");
+    nameElement.className =
+      "security-indicator-name";
+
+    nameElement.textContent =
+      indicatorLabels[indicator.type] || indicator.type;
+
+    const details = [];
+
+    if (indicator.targetHostname) {
+      details.push(indicator.targetHostname);
+    }
+
+    if (indicator.method) {
+      details.push(indicator.method);
+    }
+
+    if (indicator.objectName) {
+      details.push(indicator.objectName);
+    }
+
+    if (indicator.requestCount) {
+      const seconds = indicator.windowMs
+        ? Math.round(indicator.windowMs / 1000)
+        : null;
+
+      details.push(
+        seconds
+          ? `${indicator.requestCount} requisições em ${seconds}s`
+          : `${indicator.requestCount} requisições`
+      );
+    }
+
+    const infoElement = document.createElement("span");
+    infoElement.className =
+      "security-indicator-info";
+
+    infoElement.textContent =
+      details.join(" · ") ||
+      "Detalhes não disponíveis";
+
+    listItem.append(nameElement, infoElement);
+    listElement.appendChild(listItem);
+  }
+}
+
 async function loadPageData() {
-  const siteElement = document.getElementById("current-site");
+  const siteElement = document.getElementById(
+    "current-site"
+  );
   const thirdPartyElement = document.getElementById(
     "third-party-count"
   );
-  const statusElement = document.getElementById("status-message");
+  const statusElement = document.getElementById(
+    "status-message"
+  );
 
   try {
     const tabs = await browser.tabs.query({
@@ -378,31 +507,41 @@ async function loadPageData() {
       currentTab.id === undefined ||
       !currentTab.url
     ) {
-      throw new Error("Não foi possível acessar a aba atual.");
+      throw new Error(
+        "Não foi possível acessar a aba atual."
+      );
     }
 
     const currentUrl = new URL(currentTab.url);
 
     if (!["http:", "https:"].includes(currentUrl.protocol)) {
-      throw new Error("Esta página não pode ser analisada.");
+      throw new Error(
+        "Esta página não pode ser analisada."
+      );
     }
 
     siteElement.textContent = currentUrl.hostname;
 
     const storageKey = `tab-${currentTab.id}`;
-    const storedData = await browser.storage.local.get(storageKey);
+
+    const storedData =
+      await browser.storage.local.get(storageKey);
+
     const pageData = storedData[storageKey];
 
     if (!pageData) {
       thirdPartyElement.textContent = "0";
+
       renderThirdPartyDomains([]);
       renderCookies([]);
       renderStorage();
       renderCanvas();
       renderTracking();
+      renderSecurity();
 
       statusElement.textContent =
         "Recarregue a página para iniciar a análise.";
+
       return;
     }
 
@@ -419,6 +558,7 @@ async function loadPageData() {
     const storage = pageData.storage || {};
     const canvas = pageData.canvas || {};
     const tracking = pageData.tracking || {};
+    const security = pageData.security || {};
 
     const storageCount =
       (Array.isArray(storage.localStorage)
@@ -431,13 +571,15 @@ async function loadPageData() {
         ? storage.indexedDB.length
         : 0);
 
-    thirdPartyElement.textContent = thirdPartyDomains.length;
+    thirdPartyElement.textContent =
+      thirdPartyDomains.length;
 
     renderThirdPartyDomains(thirdPartyDomains);
     renderCookies(cookies);
     renderStorage(storage);
     renderCanvas(canvas);
     renderTracking(tracking);
+    renderSecurity(security);
 
     statusElement.textContent =
       `${thirdPartyDomains.length} domínios externos, ` +
@@ -452,9 +594,13 @@ async function loadPageData() {
     renderStorage();
     renderCanvas();
     renderTracking();
+    renderSecurity();
 
     statusElement.textContent = error.message;
   }
 }
 
-document.addEventListener("DOMContentLoaded", loadPageData);
+document.addEventListener(
+  "DOMContentLoaded",
+  loadPageData
+);

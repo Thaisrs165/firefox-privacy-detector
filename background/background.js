@@ -239,6 +239,7 @@ async function saveTabData(tabId) {
       cookies: [...data.cookies.values()],
       storage: data.storage,
       canvas: data.canvas,
+      security: data.security,
       tracking: data.tracking
     }
   });
@@ -329,6 +330,10 @@ browser.webRequest.onBeforeRequest.addListener(
           detected: false,
           methods: []
         },
+        security: {
+          detected: false,
+          indicators: []
+        },
         tracking
       });
 
@@ -391,6 +396,7 @@ browser.webRequest.onBeforeRedirect.addListener(
     }
 
     const sourceHostname = getHostname(requestDetails.url);
+
     const destinationHostname = getHostname(
       requestDetails.redirectUrl
     );
@@ -595,6 +601,83 @@ browser.runtime.onMessage.addListener((message, sender) => {
     if (!data.canvas.methods.includes(message.method)) {
       data.canvas.methods.push(message.method);
     }
+
+    return saveTabData(tabId);
+  }
+
+  if (
+    message.type === "security-indicator-signal" &&
+    typeof message.indicator === "string"
+  ) {
+    const networkIndicators = new Set([
+      "websocket-connection",
+      "event-source-connection",
+      "persistent-polling"
+    ]);
+
+    const targetHostname =
+      typeof message.targetHostname === "string"
+        ? message.targetHostname
+            .toLowerCase()
+            .replace(/\.$/, "")
+        : null;
+
+    if (networkIndicators.has(message.indicator)) {
+      const targetDomain = getSiteDomain(targetHostname);
+
+      if (
+        !targetDomain ||
+        targetDomain === data.pageDomain
+      ) {
+        return;
+      }
+    }
+
+    if (!data.security) {
+      data.security = {
+        detected: false,
+        indicators: []
+      };
+    }
+
+    const indicator = {
+      type: message.indicator,
+      targetHostname,
+      method:
+        typeof message.method === "string"
+          ? message.method
+          : null,
+      objectName:
+        typeof message.objectName === "string"
+          ? message.objectName
+          : null,
+      requestCount: Number.isInteger(
+        message.requestCount
+      )
+        ? message.requestCount
+        : null,
+      windowMs: Number.isInteger(message.windowMs)
+        ? message.windowMs
+        : null
+    };
+
+    const alreadyRecorded =
+      data.security.indicators.some(
+        (recordedIndicator) =>
+          recordedIndicator.type === indicator.type &&
+          recordedIndicator.targetHostname ===
+            indicator.targetHostname &&
+          recordedIndicator.method === indicator.method &&
+          recordedIndicator.objectName ===
+            indicator.objectName
+      );
+
+    if (alreadyRecorded) {
+      return;
+    }
+
+    data.security.detected = true;
+    data.security.indicators.push(indicator);
 
     return saveTabData(tabId);
   }
