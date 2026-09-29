@@ -79,17 +79,13 @@ function renderCookies(cookies) {
   const sortedCookies = [...cookies].sort(
     (firstCookie, secondCookie) => {
       const domainComparison =
-        firstCookie.domain.localeCompare(
-          secondCookie.domain
-        );
+        firstCookie.domain.localeCompare(secondCookie.domain);
 
       if (domainComparison !== 0) {
         return domainComparison;
       }
 
-      return firstCookie.name.localeCompare(
-        secondCookie.name
-      );
+      return firstCookie.name.localeCompare(secondCookie.name);
     }
   );
 
@@ -122,12 +118,7 @@ function renderCookies(cookies) {
         : "Sessão";
 
     tagsElement.append(partyTag, durationTag);
-    listItem.append(
-      nameElement,
-      domainElement,
-      tagsElement
-    );
-
+    listItem.append(nameElement, domainElement, tagsElement);
     listElement.appendChild(listItem);
   }
 }
@@ -145,15 +136,11 @@ function renderStorage(storage = {}) {
   );
   const listElement = document.getElementById("storage-list");
 
-  const localStorageKeys = Array.isArray(
-    storage.localStorage
-  )
+  const localStorageKeys = Array.isArray(storage.localStorage)
     ? storage.localStorage
     : [];
 
-  const sessionStorageKeys = Array.isArray(
-    storage.sessionStorage
-  )
+  const sessionStorageKeys = Array.isArray(storage.sessionStorage)
     ? storage.sessionStorage
     : [];
 
@@ -187,25 +174,21 @@ function renderStorage(storage = {}) {
     const emptyItem = document.createElement("li");
 
     emptyItem.className = "empty-state";
-    emptyItem.textContent =
-      "Nenhum armazenamento detectado.";
+    emptyItem.textContent = "Nenhum armazenamento detectado.";
 
     listElement.appendChild(emptyItem);
     return;
   }
 
   entries.sort((firstEntry, secondEntry) => {
-    const typeComparison = firstEntry.type.localeCompare(
-      secondEntry.type
-    );
+    const typeComparison =
+      firstEntry.type.localeCompare(secondEntry.type);
 
     if (typeComparison !== 0) {
       return typeComparison;
     }
 
-    return firstEntry.name.localeCompare(
-      secondEntry.name
-    );
+    return firstEntry.name.localeCompare(secondEntry.name);
   });
 
   for (const entry of entries) {
@@ -225,9 +208,7 @@ function renderStorage(storage = {}) {
 }
 
 function renderCanvas(canvas = {}) {
-  const statusElement = document.getElementById(
-    "canvas-status"
-  );
+  const statusElement = document.getElementById("canvas-status");
   const indicatorElement = document.getElementById(
     "canvas-indicator"
   );
@@ -302,9 +283,7 @@ function renderTracking(tracking = {}) {
     ? tracking.parameters
     : [];
 
-  const redirectChain = Array.isArray(
-    tracking.redirectChain
-  )
+  const redirectChain = Array.isArray(tracking.redirectChain)
     ? tracking.redirectChain
     : [];
 
@@ -369,7 +348,6 @@ function renderTracking(tracking = {}) {
     const infoElement = document.createElement("span");
     infoElement.className =
       "tracking-parameter-info";
-
     infoElement.textContent =
       `${parameter.domain} · ${parameter.context} · ` +
       `${parameter.valueLength} caracteres`;
@@ -438,9 +416,7 @@ function renderSecurity(security = {}) {
     const listItem = document.createElement("li");
 
     const nameElement = document.createElement("span");
-    nameElement.className =
-      "security-indicator-name";
-
+    nameElement.className = "security-indicator-name";
     nameElement.textContent =
       indicatorLabels[indicator.type] || indicator.type;
 
@@ -471,15 +447,203 @@ function renderSecurity(security = {}) {
     }
 
     const infoElement = document.createElement("span");
-    infoElement.className =
-      "security-indicator-info";
-
+    infoElement.className = "security-indicator-info";
     infoElement.textContent =
-      details.join(" · ") ||
-      "Detalhes não disponíveis";
+      details.join(" · ") || "Detalhes não disponíveis";
 
     listItem.append(nameElement, infoElement);
     listElement.appendChild(listItem);
+  }
+}
+
+function calculatePrivacyScore(pageData) {
+  const thirdPartyDomains = Array.isArray(
+    pageData.thirdPartyDomains
+  )
+    ? pageData.thirdPartyDomains
+    : [];
+
+  const cookies = Array.isArray(pageData.cookies)
+    ? pageData.cookies
+    : [];
+
+  const storage = pageData.storage || {};
+  const canvas = pageData.canvas || {};
+  const tracking = pageData.tracking || {};
+  const security = pageData.security || {};
+
+  const thirdPartyCookies = cookies.filter(
+    (cookie) => cookie.party === "third-party"
+  ).length;
+
+  const persistentCookies = cookies.filter(
+    (cookie) => cookie.duration === "persistent"
+  ).length;
+
+  const storageCount =
+    (Array.isArray(storage.localStorage)
+      ? storage.localStorage.length
+      : 0) +
+    (Array.isArray(storage.sessionStorage)
+      ? storage.sessionStorage.length
+      : 0) +
+    (Array.isArray(storage.indexedDB)
+      ? storage.indexedDB.length
+      : 0);
+
+  const trackingParameters = Array.isArray(
+    tracking.parameters
+  )
+    ? tracking.parameters.length
+    : 0;
+
+  const securityIndicators = Array.isArray(
+    security.indicators
+  )
+    ? security.indicators.length
+    : 0;
+
+  const deductions = [
+    {
+      label: "Domínios de terceiros",
+      points: Math.min(
+        20,
+        thirdPartyDomains.length * 2
+      )
+    },
+    {
+      label: "Cookies de risco",
+      points: Math.min(
+        20,
+        thirdPartyCookies * 3 + persistentCookies
+      )
+    },
+    {
+      label: "Armazenamento HTML5",
+      points: Math.min(
+        10,
+        storageCount * 2
+      )
+    },
+    {
+      label: "Rastreamento por navegação",
+      points: Math.min(
+        20,
+        trackingParameters * 2 +
+          (tracking.bounceDetected === true ? 10 : 0)
+      )
+    },
+    {
+      label: "Canvas fingerprinting",
+      points:
+        canvas.detected === true ? 15 : 0
+    },
+    {
+      label: "Hijacking/hook",
+      points: Math.min(
+        15,
+        securityIndicators * 5
+      )
+    }
+  ];
+
+  const totalDeduction = deductions.reduce(
+    (total, deduction) =>
+      total + deduction.points,
+    0
+  );
+
+  return {
+    score: Math.max(0, 100 - totalDeduction),
+    deductions
+  };
+}
+
+function renderPrivacyScore(pageData) {
+  const scoreSection =
+    document.querySelector(".score");
+
+  const scoreElement = document.getElementById(
+    "privacy-score"
+  );
+
+  const classificationElement =
+    document.getElementById(
+      "score-classification"
+    );
+
+  const breakdownElement = document.getElementById(
+    "score-breakdown"
+  );
+
+  scoreSection.classList.remove(
+    "score-good",
+    "score-moderate",
+    "score-warning",
+    "score-critical"
+  );
+
+  breakdownElement.replaceChildren();
+
+  if (!pageData) {
+    scoreElement.textContent = "--";
+    classificationElement.textContent =
+      "Aguardando análise";
+
+    const listItem = document.createElement("li");
+    listItem.textContent =
+      "A pontuação começa em 100.";
+
+    breakdownElement.appendChild(listItem);
+    return;
+  }
+
+  const result = calculatePrivacyScore(pageData);
+
+  let classification;
+  let scoreClass;
+
+  if (result.score >= 80) {
+    classification = "Boa privacidade";
+    scoreClass = "score-good";
+  } else if (result.score >= 60) {
+    classification = "Privacidade moderada";
+    scoreClass = "score-moderate";
+  } else if (result.score >= 40) {
+    classification = "Atenção necessária";
+    scoreClass = "score-warning";
+  } else {
+    classification = "Privacidade crítica";
+    scoreClass = "score-critical";
+  }
+
+  scoreElement.textContent = result.score;
+  classificationElement.textContent =
+    classification;
+
+  scoreSection.classList.add(scoreClass);
+
+  for (const deduction of result.deductions) {
+    const listItem = document.createElement("li");
+
+    const labelElement =
+      document.createElement("span");
+    labelElement.textContent = deduction.label;
+
+    const pointsElement =
+      document.createElement("span");
+    pointsElement.className = "score-deduction";
+    pointsElement.textContent =
+      deduction.points > 0
+        ? `-${deduction.points}`
+        : "0";
+
+    listItem.append(
+      labelElement,
+      pointsElement
+    );
+
+    breakdownElement.appendChild(listItem);
   }
 }
 
@@ -487,9 +651,11 @@ async function loadPageData() {
   const siteElement = document.getElementById(
     "current-site"
   );
+
   const thirdPartyElement = document.getElementById(
     "third-party-count"
   );
+
   const statusElement = document.getElementById(
     "status-message"
   );
@@ -514,13 +680,18 @@ async function loadPageData() {
 
     const currentUrl = new URL(currentTab.url);
 
-    if (!["http:", "https:"].includes(currentUrl.protocol)) {
+    if (
+      !["http:", "https:"].includes(
+        currentUrl.protocol
+      )
+    ) {
       throw new Error(
         "Esta página não pode ser analisada."
       );
     }
 
-    siteElement.textContent = currentUrl.hostname;
+    siteElement.textContent =
+      currentUrl.hostname;
 
     const storageKey = `tab-${currentTab.id}`;
 
@@ -538,6 +709,7 @@ async function loadPageData() {
       renderCanvas();
       renderTracking();
       renderSecurity();
+      renderPrivacyScore();
 
       statusElement.textContent =
         "Recarregue a página para iniciar a análise.";
@@ -551,7 +723,9 @@ async function loadPageData() {
       ? pageData.thirdPartyDomains
       : [];
 
-    const cookies = Array.isArray(pageData.cookies)
+    const cookies = Array.isArray(
+      pageData.cookies
+    )
       ? pageData.cookies
       : [];
 
@@ -574,19 +748,33 @@ async function loadPageData() {
     thirdPartyElement.textContent =
       thirdPartyDomains.length;
 
-    renderThirdPartyDomains(thirdPartyDomains);
+    renderThirdPartyDomains(
+      thirdPartyDomains
+    );
+
     renderCookies(cookies);
     renderStorage(storage);
     renderCanvas(canvas);
     renderTracking(tracking);
     renderSecurity(security);
 
+    renderPrivacyScore({
+      thirdPartyDomains,
+      cookies,
+      storage,
+      canvas,
+      tracking,
+      security
+    });
+
     statusElement.textContent =
       `${thirdPartyDomains.length} domínios externos, ` +
       `${cookies.length} cookies e ` +
       `${storageCount} armazenamentos detectados.`;
   } catch (error) {
-    siteElement.textContent = "Página não disponível";
+    siteElement.textContent =
+      "Página não disponível";
+
     thirdPartyElement.textContent = "0";
 
     renderThirdPartyDomains([]);
@@ -595,6 +783,7 @@ async function loadPageData() {
     renderCanvas();
     renderTracking();
     renderSecurity();
+    renderPrivacyScore();
 
     statusElement.textContent = error.message;
   }

@@ -593,3 +593,57 @@ body {
   font-size: 10px;
   line-height: 1.4;
 }
+
+.score.score-good {
+  background-color: #047857;
+}
+
+.score.score-moderate {
+  background-color: #a16207;
+}
+
+.score.score-warning {
+  background-color: #c2410c;
+}
+
+.score.score-critical {
+  background-color: #b91c1c;
+}
+
+.score-value {
+  margin: 8px 0 0;
+}
+
+#score-classification {
+  margin: 5px 0 0;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+#score-breakdown {
+  margin: 10px 0 0;
+  padding: 8px;
+  list-style: none;
+  text-align: left;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+#score-breakdown li {
+  display: flex;
+  margin-bottom: 5px;
+  justify-content: space-between;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+#score-breakdown li:last-child {
+  margin-bottom: 0;
+}
+
+.score-deduction {
+  flex-shrink: 0;
+  font-weight: bold;
+}
