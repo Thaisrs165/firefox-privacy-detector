@@ -1,6 +1,30 @@
 const tabData = new Map();
 const pendingBounceData = new Map();
 
+let customBlocklist = new Set();
+
+const blocklistReady = browser.storage.local
+  .get("customBlocklist")
+  .then((storedData) => {
+    const storedBlocklist = Array.isArray(
+      storedData.customBlocklist
+    )
+      ? storedData.customBlocklist
+      : [];
+
+    customBlocklist = new Set(
+      storedBlocklist
+        .map(normalizeBlockedDomain)
+        .filter(Boolean)
+    );
+  })
+  .catch((error) => {
+    console.error(
+      "Não foi possível carregar a blocklist:",
+      error
+    );
+  });
+
 const MULTI_LEVEL_SUFFIXES = new Set([
   "com.br",
   "net.br",
@@ -51,6 +75,63 @@ function getHostname(url) {
   }
 }
 
+function normalizeBlockedDomain(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  let domain = value.trim().toLowerCase();
+
+  if (!domain) {
+    return null;
+  }
+
+  try {
+    if (domain.includes("://")) {
+      domain = new URL(domain).hostname;
+    }
+  } catch {
+    return null;
+  }
+
+  domain = domain
+    .replace(/^\*\./, "")
+    .replace(/^\./, "")
+    .replace(/\.$/, "");
+
+  const isValidDomain =
+    domain.length <= 253 &&
+    domain.includes(".") &&
+    /^[a-z0-9.-]+$/.test(domain) &&
+    !domain.includes("..") &&
+    domain.split(".").every(
+      (part) =>
+        part.length > 0 &&
+        part.length <= 63 &&
+        !part.startsWith("-") &&
+        !part.endsWith("-")
+    );
+
+  return isValidDomain ? domain : null;
+}
+
+function isHostnameBlocked(hostname) {
+  if (!hostname) {
+    return false;
+  }
+
+  for (const blockedDomain of customBlocklist) {
+    if (
+      hostname === blockedDomain ||
+      hostname.endsWith(`.${blockedDomain}`)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function getSiteDomain(hostname) {
   if (!hostname) {
     return null;
@@ -62,9 +143,14 @@ function getSiteDomain(hostname) {
     return hostname;
   }
 
-  const possibleMultiLevelSuffix = parts.slice(-2).join(".");
+  const possibleMultiLevelSuffix =
+    parts.slice(-2).join(".");
 
-  if (MULTI_LEVEL_SUFFIXES.has(possibleMultiLevelSuffix)) {
+  if (
+    MULTI_LEVEL_SUFFIXES.has(
+      possibleMultiLevelSuffix
+    )
+  ) {
     return parts.slice(-3).join(".");
   }
 
@@ -72,7 +158,8 @@ function getSiteDomain(hostname) {
 }
 
 function isTrackingParameter(parameterName) {
-  const normalizedName = parameterName.toLowerCase();
+  const normalizedName =
+    parameterName.toLowerCase();
 
   return (
     normalizedName.startsWith("utm_") ||
@@ -86,7 +173,10 @@ function getTrackingParameters(url) {
     const parsedUrl = new URL(url);
     const parameters = [];
 
-    for (const [name, value] of parsedUrl.searchParams) {
+    for (
+      const [name, value]
+      of parsedUrl.searchParams
+    ) {
       if (!isTrackingParameter(name)) {
         continue;
       }
@@ -112,12 +202,14 @@ function addTrackingParameters(
   const parameters = getTrackingParameters(url);
 
   for (const parameter of parameters) {
-    const alreadyRecorded = tracking.parameters.some(
-      (recordedParameter) =>
-        recordedParameter.name === parameter.name &&
-        recordedParameter.domain === domain &&
-        recordedParameter.context === context
-    );
+    const alreadyRecorded =
+      tracking.parameters.some(
+        (recordedParameter) =>
+          recordedParameter.name ===
+            parameter.name &&
+          recordedParameter.domain === domain &&
+          recordedParameter.context === context
+      );
 
     if (alreadyRecorded) {
       continue;
@@ -146,7 +238,8 @@ function parseSetCookieHeader(
     .map((section) => section.trim());
 
   const nameAndValue = sections.shift();
-  const separatorIndex = nameAndValue.indexOf("=");
+  const separatorIndex =
+    nameAndValue.indexOf("=");
 
   if (separatorIndex <= 0) {
     return null;
@@ -159,10 +252,14 @@ function parseSetCookieHeader(
   const attributes = new Map();
 
   for (const section of sections) {
-    const attributeSeparator = section.indexOf("=");
+    const attributeSeparator =
+      section.indexOf("=");
 
     if (attributeSeparator === -1) {
-      attributes.set(section.toLowerCase(), "");
+      attributes.set(
+        section.toLowerCase(),
+        ""
+      );
       continue;
     }
 
@@ -175,12 +272,18 @@ function parseSetCookieHeader(
       .slice(attributeSeparator + 1)
       .trim();
 
-    attributes.set(attributeName, attributeValue);
+    attributes.set(
+      attributeName,
+      attributeValue
+    );
   }
 
   const maxAge = attributes.get("max-age");
 
-  if (maxAge !== undefined && Number(maxAge) <= 0) {
+  if (
+    maxAge !== undefined &&
+    Number(maxAge) <= 0
+  ) {
     return null;
   }
 
@@ -203,13 +306,18 @@ function parseSetCookieHeader(
     .toLowerCase();
 
   const cookieDomain =
-    getSiteDomain(declaredDomain) || requestDomain;
+    getSiteDomain(declaredDomain) ||
+    requestDomain;
 
-  const cookiePath = attributes.get("path") || "/";
-  const isThirdParty = cookieDomain !== pageDomain;
+  const cookiePath =
+    attributes.get("path") || "/";
+
+  const isThirdParty =
+    cookieDomain !== pageDomain;
 
   const hasPositiveMaxAge =
-    maxAge !== undefined && Number(maxAge) > 0;
+    maxAge !== undefined &&
+    Number(maxAge) > 0;
 
   const isPersistent =
     Boolean(expires) || hasPositiveMaxAge;
@@ -219,8 +327,12 @@ function parseSetCookieHeader(
     name: cookieName,
     domain: cookieDomain,
     path: cookiePath,
-    party: isThirdParty ? "third-party" : "first-party",
-    duration: isPersistent ? "persistent" : "session"
+    party: isThirdParty
+      ? "third-party"
+      : "first-party",
+    duration: isPersistent
+      ? "persistent"
+      : "session"
   };
 }
 
@@ -235,15 +347,79 @@ async function saveTabData(tabId) {
     [`tab-${tabId}`]: {
       pageDomain: data.pageDomain,
       pageHostname: data.pageHostname,
-      thirdPartyDomains: [...data.thirdPartyDomains],
+      thirdPartyDomains: [
+        ...data.thirdPartyDomains
+      ],
       cookies: [...data.cookies.values()],
       storage: data.storage,
       canvas: data.canvas,
       security: data.security,
-      tracking: data.tracking
+      tracking: data.tracking,
+      blockedRequests:
+        data.blockedRequests || 0
     }
   });
 }
+
+browser.storage.onChanged.addListener(
+  (changes, areaName) => {
+    if (
+      areaName !== "local" ||
+      !changes.customBlocklist
+    ) {
+      return;
+    }
+
+    const updatedBlocklist = Array.isArray(
+      changes.customBlocklist.newValue
+    )
+      ? changes.customBlocklist.newValue
+      : [];
+
+    customBlocklist = new Set(
+      updatedBlocklist
+        .map(normalizeBlockedDomain)
+        .filter(Boolean)
+    );
+  }
+);
+
+browser.webRequest.onBeforeRequest.addListener(
+  async (requestDetails) => {
+    await blocklistReady;
+
+    const requestHostname = getHostname(
+      requestDetails.url
+    );
+
+    if (
+      !isHostnameBlocked(requestHostname)
+    ) {
+      return {};
+    }
+
+    const data = tabData.get(
+      requestDetails.tabId
+    );
+
+    if (data) {
+      data.blockedRequests =
+        (data.blockedRequests || 0) + 1;
+
+      saveTabData(
+        requestDetails.tabId
+      ).catch(console.error);
+    }
+
+    return {
+      cancel: true
+    };
+  },
+  {
+    urls: ["<all_urls>"]
+  },
+  ["blocking"]
+);
 
 browser.webRequest.onBeforeRequest.addListener(
   (requestDetails) => {
@@ -253,45 +429,63 @@ browser.webRequest.onBeforeRequest.addListener(
       return;
     }
 
-    const requestHostname = getHostname(requestDetails.url);
-    const requestDomain = getSiteDomain(requestHostname);
+    const requestHostname = getHostname(
+      requestDetails.url
+    );
+
+    const requestDomain = getSiteDomain(
+      requestHostname
+    );
 
     if (!requestDomain) {
       return;
     }
 
-    if (requestDetails.type === "main_frame") {
-      const previousData = tabData.get(tabId);
+    if (
+      requestDetails.type === "main_frame"
+    ) {
+      const previousData =
+        tabData.get(tabId);
 
-      const navigationParameters = getTrackingParameters(
-        requestDetails.url
-      );
+      const navigationParameters =
+        getTrackingParameters(
+          requestDetails.url
+        );
 
       const hasIdentifierParameter =
         navigationParameters.some(
           (parameter) =>
-            !parameter.name.toLowerCase().startsWith("utm_")
+            !parameter.name
+              .toLowerCase()
+              .startsWith("utm_")
         );
 
-      const navigationBounceDetected = Boolean(
-        previousData?.pageHostname &&
-        previousData.pageHostname !== requestHostname &&
-        hasIdentifierParameter
-      );
+      const navigationBounceDetected =
+        Boolean(
+          previousData?.pageHostname &&
+          previousData.pageHostname !==
+            requestHostname &&
+          hasIdentifierParameter
+        );
 
-      const pendingBounce = pendingBounceData.get(tabId);
+      const pendingBounce =
+        pendingBounceData.get(tabId);
 
       const pendingBounceIsValid =
         pendingBounce &&
-        pendingBounce.destinationHostname === requestHostname &&
-        Date.now() - pendingBounce.detectedAt <= 10000;
+        pendingBounce.destinationHostname ===
+          requestHostname &&
+        Date.now() -
+          pendingBounce.detectedAt <=
+          10000;
 
       const tracking = {
         parameters: pendingBounceIsValid
           ? [...pendingBounce.parameters]
           : [],
         bounceDetected: Boolean(
-          pendingBounceIsValid || navigationBounceDetected
+          pendingBounceIsValid ||
+          navigationBounceDetected
         ),
         bounceDomains: pendingBounceIsValid
           ? [...pendingBounce.bounceDomains]
@@ -301,7 +495,10 @@ browser.webRequest.onBeforeRequest.addListener(
         redirectChain: pendingBounceIsValid
           ? [...pendingBounce.redirectChain]
           : navigationBounceDetected
-            ? [previousData.pageHostname, requestHostname]
+            ? [
+                previousData.pageHostname,
+                requestHostname
+              ]
             : []
       };
 
@@ -334,27 +531,42 @@ browser.webRequest.onBeforeRequest.addListener(
           detected: false,
           indicators: []
         },
-        tracking
+        tracking,
+        blockedRequests: 0
       });
 
-      saveTabData(tabId).catch(console.error);
+      saveTabData(tabId).catch(
+        console.error
+      );
+
       return;
     }
 
     const data = tabData.get(tabId);
 
-    if (!data || !data.pageDomain) {
+    if (
+      !data ||
+      !data.pageDomain
+    ) {
       return;
     }
 
     let dataChanged = false;
 
-    if (requestDomain !== data.pageDomain) {
-      const previousSize = data.thirdPartyDomains.size;
+    if (
+      requestDomain !== data.pageDomain
+    ) {
+      const previousSize =
+        data.thirdPartyDomains.size;
 
-      data.thirdPartyDomains.add(requestDomain);
+      data.thirdPartyDomains.add(
+        requestDomain
+      );
 
-      if (data.thirdPartyDomains.size !== previousSize) {
+      if (
+        data.thirdPartyDomains.size !==
+        previousSize
+      ) {
         dataChanged = true;
       }
     }
@@ -377,7 +589,9 @@ browser.webRequest.onBeforeRequest.addListener(
     }
 
     if (dataChanged) {
-      saveTabData(tabId).catch(console.error);
+      saveTabData(tabId).catch(
+        console.error
+      );
     }
   },
   {
@@ -389,45 +603,58 @@ browser.webRequest.onBeforeRedirect.addListener(
   (requestDetails) => {
     if (
       requestDetails.tabId < 0 ||
-      requestDetails.type !== "main_frame" ||
+      requestDetails.type !==
+        "main_frame" ||
       !requestDetails.redirectUrl
     ) {
       return;
     }
 
-    const sourceHostname = getHostname(requestDetails.url);
-
-    const destinationHostname = getHostname(
-      requestDetails.redirectUrl
+    const sourceHostname = getHostname(
+      requestDetails.url
     );
+
+    const destinationHostname =
+      getHostname(
+        requestDetails.redirectUrl
+      );
 
     if (
       !sourceHostname ||
       !destinationHostname ||
-      sourceHostname === destinationHostname
+      sourceHostname ===
+        destinationHostname
     ) {
       return;
     }
 
-    const sourceParameters = getTrackingParameters(
-      requestDetails.url
-    );
+    const sourceParameters =
+      getTrackingParameters(
+        requestDetails.url
+      );
 
-    const destinationParameters = getTrackingParameters(
-      requestDetails.redirectUrl
-    );
+    const destinationParameters =
+      getTrackingParameters(
+        requestDetails.redirectUrl
+      );
 
     const redirectParameters = [
       ...sourceParameters,
       ...destinationParameters
     ];
 
-    if (redirectParameters.length === 0) {
+    if (
+      redirectParameters.length === 0
+    ) {
       return;
     }
 
-    const currentData = tabData.get(requestDetails.tabId);
-    const previousTracking = currentData?.tracking;
+    const currentData = tabData.get(
+      requestDetails.tabId
+    );
+
+    const previousTracking =
+      currentData?.tracking;
 
     const bounceDomains = new Set(
       previousTracking?.bounceDomains || []
@@ -436,52 +663,72 @@ browser.webRequest.onBeforeRedirect.addListener(
     bounceDomains.add(sourceHostname);
 
     const redirectChain = [
-      ...(previousTracking?.redirectChain || [])
+      ...(previousTracking?.redirectChain ||
+        [])
     ];
 
     if (
-      redirectChain[redirectChain.length - 1] !==
-      sourceHostname
+      redirectChain[
+        redirectChain.length - 1
+      ] !== sourceHostname
     ) {
       redirectChain.push(sourceHostname);
     }
 
-    redirectChain.push(destinationHostname);
+    redirectChain.push(
+      destinationHostname
+    );
 
     const parameters = [
-      ...(previousTracking?.parameters || [])
+      ...(previousTracking?.parameters ||
+        [])
     ];
 
-    for (const parameter of redirectParameters) {
+    for (
+      const parameter
+      of redirectParameters
+    ) {
       const parameterDomain =
-        destinationParameters.includes(parameter)
+        destinationParameters.includes(
+          parameter
+        )
           ? destinationHostname
           : sourceHostname;
 
-      const alreadyRecorded = parameters.some(
-        (recordedParameter) =>
-          recordedParameter.name === parameter.name &&
-          recordedParameter.domain === parameterDomain &&
-          recordedParameter.context === "redirect"
-      );
+      const alreadyRecorded =
+        parameters.some(
+          (recordedParameter) =>
+            recordedParameter.name ===
+              parameter.name &&
+            recordedParameter.domain ===
+              parameterDomain &&
+            recordedParameter.context ===
+              "redirect"
+        );
 
       if (!alreadyRecorded) {
         parameters.push({
           name: parameter.name,
-          valueLength: parameter.valueLength,
+          valueLength:
+            parameter.valueLength,
           domain: parameterDomain,
           context: "redirect"
         });
       }
     }
 
-    pendingBounceData.set(requestDetails.tabId, {
-      destinationHostname,
-      detectedAt: Date.now(),
-      parameters,
-      bounceDomains: [...bounceDomains],
-      redirectChain
-    });
+    pendingBounceData.set(
+      requestDetails.tabId,
+      {
+        destinationHostname,
+        detectedAt: Date.now(),
+        parameters,
+        bounceDomains: [
+          ...bounceDomains
+        ],
+        redirectChain
+      }
+    );
   },
   {
     urls: ["<all_urls>"]
@@ -493,12 +740,21 @@ browser.webRequest.onHeadersReceived.addListener(
     const tabId = requestDetails.tabId;
     const data = tabData.get(tabId);
 
-    if (tabId < 0 || !data || !data.pageDomain) {
+    if (
+      tabId < 0 ||
+      !data ||
+      !data.pageDomain
+    ) {
       return;
     }
 
-    const requestHostname = getHostname(requestDetails.url);
-    const requestDomain = getSiteDomain(requestHostname);
+    const requestHostname = getHostname(
+      requestDetails.url
+    );
+
+    const requestDomain = getSiteDomain(
+      requestHostname
+    );
 
     if (!requestDomain) {
       return;
@@ -507,39 +763,54 @@ browser.webRequest.onHeadersReceived.addListener(
     const responseHeaders =
       requestDetails.responseHeaders || [];
 
-    const setCookieHeaders = responseHeaders.filter(
-      (header) =>
-        header.name &&
-        header.name.toLowerCase() === "set-cookie"
-    );
+    const setCookieHeaders =
+      responseHeaders.filter(
+        (header) =>
+          header.name &&
+          header.name.toLowerCase() ===
+            "set-cookie"
+      );
 
     let dataChanged = false;
 
-    for (const header of setCookieHeaders) {
-      const cookie = parseSetCookieHeader(
-        header.value,
-        requestDomain,
-        data.pageDomain
-      );
+    for (
+      const header
+      of setCookieHeaders
+    ) {
+      const cookie =
+        parseSetCookieHeader(
+          header.value,
+          requestDomain,
+          data.pageDomain
+        );
 
       if (!cookie) {
         continue;
       }
 
-      const previousCookie = data.cookies.get(cookie.id);
+      const previousCookie =
+        data.cookies.get(cookie.id);
 
       if (
         !previousCookie ||
-        previousCookie.party !== cookie.party ||
-        previousCookie.duration !== cookie.duration
+        previousCookie.party !==
+          cookie.party ||
+        previousCookie.duration !==
+          cookie.duration
       ) {
-        data.cookies.set(cookie.id, cookie);
+        data.cookies.set(
+          cookie.id,
+          cookie
+        );
+
         dataChanged = true;
       }
     }
 
     if (dataChanged) {
-      saveTabData(tabId).catch(console.error);
+      saveTabData(tabId).catch(
+        console.error
+      );
     }
   },
   {
@@ -548,143 +819,183 @@ browser.webRequest.onHeadersReceived.addListener(
   ["responseHeaders"]
 );
 
-browser.runtime.onMessage.addListener((message, sender) => {
-  if (!sender.tab || sender.tab.id === undefined) {
-    return;
-  }
-
-  const tabId = sender.tab.id;
-  const data = tabData.get(tabId);
-
-  if (!data) {
-    return;
-  }
-
-  if (
-    message.type === "client-storage-report" &&
-    message.storage
-  ) {
-    data.storage = {
-      localStorage: Array.isArray(
-        message.storage.localStorage
-      )
-        ? message.storage.localStorage
-        : [],
-      sessionStorage: Array.isArray(
-        message.storage.sessionStorage
-      )
-        ? message.storage.sessionStorage
-        : [],
-      indexedDB: Array.isArray(
-        message.storage.indexedDB
-      )
-        ? message.storage.indexedDB
-        : []
-    };
-
-    return saveTabData(tabId);
-  }
-
-  if (
-    message.type === "canvas-fingerprint-signal" &&
-    typeof message.method === "string"
-  ) {
-    if (!data.canvas) {
-      data.canvas = {
-        detected: false,
-        methods: []
-      };
-    }
-
-    data.canvas.detected = true;
-
-    if (!data.canvas.methods.includes(message.method)) {
-      data.canvas.methods.push(message.method);
-    }
-
-    return saveTabData(tabId);
-  }
-
-  if (
-    message.type === "security-indicator-signal" &&
-    typeof message.indicator === "string"
-  ) {
-    const networkIndicators = new Set([
-      "websocket-connection",
-      "event-source-connection",
-      "persistent-polling"
-    ]);
-
-    const targetHostname =
-      typeof message.targetHostname === "string"
-        ? message.targetHostname
-            .toLowerCase()
-            .replace(/\.$/, "")
-        : null;
-
-    if (networkIndicators.has(message.indicator)) {
-      const targetDomain = getSiteDomain(targetHostname);
-
-      if (
-        !targetDomain ||
-        targetDomain === data.pageDomain
-      ) {
-        return;
-      }
-    }
-
-    if (!data.security) {
-      data.security = {
-        detected: false,
-        indicators: []
-      };
-    }
-
-    const indicator = {
-      type: message.indicator,
-      targetHostname,
-      method:
-        typeof message.method === "string"
-          ? message.method
-          : null,
-      objectName:
-        typeof message.objectName === "string"
-          ? message.objectName
-          : null,
-      requestCount: Number.isInteger(
-        message.requestCount
-      )
-        ? message.requestCount
-        : null,
-      windowMs: Number.isInteger(message.windowMs)
-        ? message.windowMs
-        : null
-    };
-
-    const alreadyRecorded =
-      data.security.indicators.some(
-        (recordedIndicator) =>
-          recordedIndicator.type === indicator.type &&
-          recordedIndicator.targetHostname ===
-            indicator.targetHostname &&
-          recordedIndicator.method === indicator.method &&
-          recordedIndicator.objectName ===
-            indicator.objectName
-      );
-
-    if (alreadyRecorded) {
+browser.runtime.onMessage.addListener(
+  (message, sender) => {
+    if (
+      !sender.tab ||
+      sender.tab.id === undefined
+    ) {
       return;
     }
 
-    data.security.detected = true;
-    data.security.indicators.push(indicator);
+    const tabId = sender.tab.id;
+    const data = tabData.get(tabId);
 
-    return saveTabData(tabId);
+    if (!data) {
+      return;
+    }
+
+    if (
+      message.type ===
+        "client-storage-report" &&
+      message.storage
+    ) {
+      data.storage = {
+        localStorage: Array.isArray(
+          message.storage.localStorage
+        )
+          ? message.storage.localStorage
+          : [],
+        sessionStorage: Array.isArray(
+          message.storage.sessionStorage
+        )
+          ? message.storage.sessionStorage
+          : [],
+        indexedDB: Array.isArray(
+          message.storage.indexedDB
+        )
+          ? message.storage.indexedDB
+          : []
+      };
+
+      return saveTabData(tabId);
+    }
+
+    if (
+      message.type ===
+        "canvas-fingerprint-signal" &&
+      typeof message.method === "string"
+    ) {
+      if (!data.canvas) {
+        data.canvas = {
+          detected: false,
+          methods: []
+        };
+      }
+
+      data.canvas.detected = true;
+
+      if (
+        !data.canvas.methods.includes(
+          message.method
+        )
+      ) {
+        data.canvas.methods.push(
+          message.method
+        );
+      }
+
+      return saveTabData(tabId);
+    }
+
+    if (
+      message.type ===
+        "security-indicator-signal" &&
+      typeof message.indicator ===
+        "string"
+    ) {
+      const networkIndicators =
+        new Set([
+          "websocket-connection",
+          "event-source-connection",
+          "persistent-polling"
+        ]);
+
+      const targetHostname =
+        typeof message.targetHostname ===
+        "string"
+          ? message.targetHostname
+              .toLowerCase()
+              .replace(/\.$/, "")
+          : null;
+
+      if (
+        networkIndicators.has(
+          message.indicator
+        )
+      ) {
+        const targetDomain =
+          getSiteDomain(
+            targetHostname
+          );
+
+        if (
+          !targetDomain ||
+          targetDomain ===
+            data.pageDomain
+        ) {
+          return;
+        }
+      }
+
+      if (!data.security) {
+        data.security = {
+          detected: false,
+          indicators: []
+        };
+      }
+
+      const indicator = {
+        type: message.indicator,
+        targetHostname,
+        method:
+          typeof message.method ===
+          "string"
+            ? message.method
+            : null,
+        objectName:
+          typeof message.objectName ===
+          "string"
+            ? message.objectName
+            : null,
+        requestCount: Number.isInteger(
+          message.requestCount
+        )
+          ? message.requestCount
+          : null,
+        windowMs: Number.isInteger(
+          message.windowMs
+        )
+          ? message.windowMs
+          : null
+      };
+
+      const alreadyRecorded =
+        data.security.indicators.some(
+          (recordedIndicator) =>
+            recordedIndicator.type ===
+              indicator.type &&
+            recordedIndicator
+              .targetHostname ===
+              indicator.targetHostname &&
+            recordedIndicator.method ===
+              indicator.method &&
+            recordedIndicator.objectName ===
+              indicator.objectName
+        );
+
+      if (alreadyRecorded) {
+        return;
+      }
+
+      data.security.detected = true;
+
+      data.security.indicators.push(
+        indicator
+      );
+
+      return saveTabData(tabId);
+    }
   }
-});
+);
 
-browser.tabs.onRemoved.addListener((tabId) => {
-  tabData.delete(tabId);
-  pendingBounceData.delete(tabId);
-  browser.storage.local.remove(`tab-${tabId}`);
-});
+browser.tabs.onRemoved.addListener(
+  (tabId) => {
+    tabData.delete(tabId);
+    pendingBounceData.delete(tabId);
+
+    browser.storage.local.remove(
+      `tab-${tabId}`
+    );
+  }
+);

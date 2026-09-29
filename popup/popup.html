@@ -158,6 +158,40 @@
         </ul>
       </section>
 
+      <section class="blocklist-details">
+        <h2>Blocklist personalizada</h2>
+
+        <p class="blocked-summary">
+          <span id="blocked-request-count">0</span>
+          requisições bloqueadas nesta página
+        </p>
+
+        <form id="blocklist-form">
+          <input
+            id="blocklist-input"
+            type="text"
+            placeholder="exemplo.com"
+            aria-label="Domínio para bloquear"
+            autocomplete="off"
+          >
+
+          <button type="submit">
+            Adicionar
+          </button>
+        </form>
+
+        <p
+          id="blocklist-message"
+          aria-live="polite"
+        ></p>
+
+        <ul id="blocklist-list">
+          <li class="empty-state">
+            Nenhum domínio adicionado.
+          </li>
+        </ul>
+      </section>
+
       <section class="score">
         <h2>Pontuação de privacidade</h2>
 

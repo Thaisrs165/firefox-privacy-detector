@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Privacy Detector",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Firefox extension for detecting web trackers and privacy threats.",
   "permissions": [
     "tabs",
     "storage",
-    "webRequest"
+    "webRequest",
+    "webRequestBlocking"
   ],
   "host_permissions": [
     "<all_urls>"

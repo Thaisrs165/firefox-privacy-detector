@@ -1,14 +1,11 @@
 function renderThirdPartyDomains(domains) {
   const listElement = document.getElementById("third-party-list");
-
   listElement.replaceChildren();
 
   if (domains.length === 0) {
     const emptyItem = document.createElement("li");
-
     emptyItem.className = "empty-state";
     emptyItem.textContent = "Nenhum domínio detectado.";
-
     listElement.appendChild(emptyItem);
     return;
   }
@@ -20,7 +17,6 @@ function renderThirdPartyDomains(domains) {
 
   for (const domain of sortedDomains) {
     const listItem = document.createElement("li");
-
     listItem.textContent = domain;
     listElement.appendChild(listItem);
   }
@@ -68,10 +64,8 @@ function renderCookies(cookies) {
 
   if (cookies.length === 0) {
     const emptyItem = document.createElement("li");
-
     emptyItem.className = "empty-state";
     emptyItem.textContent = "Nenhum cookie detectado.";
-
     listElement.appendChild(emptyItem);
     return;
   }
@@ -79,13 +73,17 @@ function renderCookies(cookies) {
   const sortedCookies = [...cookies].sort(
     (firstCookie, secondCookie) => {
       const domainComparison =
-        firstCookie.domain.localeCompare(secondCookie.domain);
+        firstCookie.domain.localeCompare(
+          secondCookie.domain
+        );
 
       if (domainComparison !== 0) {
         return domainComparison;
       }
 
-      return firstCookie.name.localeCompare(secondCookie.name);
+      return firstCookie.name.localeCompare(
+        secondCookie.name
+      );
     }
   );
 
@@ -118,13 +116,19 @@ function renderCookies(cookies) {
         : "Sessão";
 
     tagsElement.append(partyTag, durationTag);
-    listItem.append(nameElement, domainElement, tagsElement);
+    listItem.append(
+      nameElement,
+      domainElement,
+      tagsElement
+    );
     listElement.appendChild(listItem);
   }
 }
 
 function renderStorage(storage = {}) {
-  const totalElement = document.getElementById("storage-count");
+  const totalElement = document.getElementById(
+    "storage-count"
+  );
   const localElement = document.getElementById(
     "local-storage-count"
   );
@@ -134,17 +138,25 @@ function renderStorage(storage = {}) {
   const indexedDBElement = document.getElementById(
     "indexed-db-count"
   );
-  const listElement = document.getElementById("storage-list");
+  const listElement = document.getElementById(
+    "storage-list"
+  );
 
-  const localStorageKeys = Array.isArray(storage.localStorage)
+  const localStorageKeys = Array.isArray(
+    storage.localStorage
+  )
     ? storage.localStorage
     : [];
 
-  const sessionStorageKeys = Array.isArray(storage.sessionStorage)
+  const sessionStorageKeys = Array.isArray(
+    storage.sessionStorage
+  )
     ? storage.sessionStorage
     : [];
 
-  const indexedDBNames = Array.isArray(storage.indexedDB)
+  const indexedDBNames = Array.isArray(
+    storage.indexedDB
+  )
     ? storage.indexedDB
     : [];
 
@@ -172,10 +184,9 @@ function renderStorage(storage = {}) {
 
   if (entries.length === 0) {
     const emptyItem = document.createElement("li");
-
     emptyItem.className = "empty-state";
-    emptyItem.textContent = "Nenhum armazenamento detectado.";
-
+    emptyItem.textContent =
+      "Nenhum armazenamento detectado.";
     listElement.appendChild(emptyItem);
     return;
   }
@@ -188,7 +199,9 @@ function renderStorage(storage = {}) {
       return typeComparison;
     }
 
-    return firstEntry.name.localeCompare(secondEntry.name);
+    return firstEntry.name.localeCompare(
+      secondEntry.name
+    );
   });
 
   for (const entry of entries) {
@@ -208,7 +221,9 @@ function renderStorage(storage = {}) {
 }
 
 function renderCanvas(canvas = {}) {
-  const statusElement = document.getElementById("canvas-status");
+  const statusElement = document.getElementById(
+    "canvas-status"
+  );
   const indicatorElement = document.getElementById(
     "canvas-indicator"
   );
@@ -240,11 +255,9 @@ function renderCanvas(canvas = {}) {
 
   if (methods.length === 0) {
     const emptyItem = document.createElement("li");
-
     emptyItem.className = "empty-state";
     emptyItem.textContent =
       "Nenhum método de leitura detectado.";
-
     listElement.appendChild(emptyItem);
     return;
   }
@@ -256,7 +269,6 @@ function renderCanvas(canvas = {}) {
 
   for (const method of sortedMethods) {
     const listItem = document.createElement("li");
-
     listItem.textContent = method;
     listElement.appendChild(listItem);
   }
@@ -283,7 +295,9 @@ function renderTracking(tracking = {}) {
     ? tracking.parameters
     : [];
 
-  const redirectChain = Array.isArray(tracking.redirectChain)
+  const redirectChain = Array.isArray(
+    tracking.redirectChain
+  )
     ? tracking.redirectChain
     : [];
 
@@ -311,11 +325,9 @@ function renderTracking(tracking = {}) {
 
   if (parameters.length === 0) {
     const emptyItem = document.createElement("li");
-
     emptyItem.className = "empty-state";
     emptyItem.textContent =
       "Nenhum parâmetro de rastreamento detectado.";
-
     listElement.appendChild(emptyItem);
     return;
   }
@@ -376,9 +388,13 @@ function renderSecurity(security = {}) {
     : [];
 
   const detected =
-    security.detected === true || indicators.length > 0;
+    security.detected === true ||
+    indicators.length > 0;
 
-  statusElement.classList.toggle("detected", detected);
+  statusElement.classList.toggle(
+    "detected",
+    detected
+  );
 
   indicatorElement.textContent = detected
     ? "Possível risco detectado"
@@ -392,11 +408,9 @@ function renderSecurity(security = {}) {
 
   if (indicators.length === 0) {
     const emptyItem = document.createElement("li");
-
     emptyItem.className = "empty-state";
     emptyItem.textContent =
       "Nenhum indicador de segurança detectado.";
-
     listElement.appendChild(emptyItem);
     return;
   }
@@ -416,9 +430,11 @@ function renderSecurity(security = {}) {
     const listItem = document.createElement("li");
 
     const nameElement = document.createElement("span");
-    nameElement.className = "security-indicator-name";
+    nameElement.className =
+      "security-indicator-name";
     nameElement.textContent =
-      indicatorLabels[indicator.type] || indicator.type;
+      indicatorLabels[indicator.type] ||
+      indicator.type;
 
     const details = [];
 
@@ -447,12 +463,239 @@ function renderSecurity(security = {}) {
     }
 
     const infoElement = document.createElement("span");
-    infoElement.className = "security-indicator-info";
+    infoElement.className =
+      "security-indicator-info";
     infoElement.textContent =
-      details.join(" · ") || "Detalhes não disponíveis";
+      details.join(" · ") ||
+      "Detalhes não disponíveis";
 
     listItem.append(nameElement, infoElement);
     listElement.appendChild(listItem);
+  }
+}
+
+function normalizeBlockedDomain(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  let domain = value.trim().toLowerCase();
+
+  if (!domain) {
+    return null;
+  }
+
+  try {
+    if (domain.includes("://")) {
+      domain = new URL(domain).hostname;
+    }
+  } catch {
+    return null;
+  }
+
+  domain = domain
+    .replace(/^\*\./, "")
+    .replace(/^\./, "")
+    .replace(/\.$/, "");
+
+  const isValidDomain =
+    domain.length <= 253 &&
+    domain.includes(".") &&
+    /^[a-z0-9.-]+$/.test(domain) &&
+    !domain.includes("..") &&
+    domain.split(".").every(
+      (part) =>
+        part.length > 0 &&
+        part.length <= 63 &&
+        !part.startsWith("-") &&
+        !part.endsWith("-")
+    );
+
+  return isValidDomain ? domain : null;
+}
+
+function showBlocklistMessage(
+  message,
+  type = ""
+) {
+  const messageElement = document.getElementById(
+    "blocklist-message"
+  );
+
+  messageElement.textContent = message;
+  messageElement.className = type;
+}
+
+async function saveBlocklist(domains) {
+  await browser.storage.local.set({
+    customBlocklist: domains
+  });
+}
+
+function renderBlocklist(domains) {
+  const listElement = document.getElementById(
+    "blocklist-list"
+  );
+
+  listElement.replaceChildren();
+
+  if (domains.length === 0) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "empty-state";
+    emptyItem.textContent =
+      "Nenhum domínio adicionado.";
+    listElement.appendChild(emptyItem);
+    return;
+  }
+
+  const sortedDomains = [...domains].sort(
+    (firstDomain, secondDomain) =>
+      firstDomain.localeCompare(secondDomain)
+  );
+
+  for (const domain of sortedDomains) {
+    const listItem = document.createElement("li");
+
+    const domainElement = document.createElement("span");
+    domainElement.className = "blocklist-domain";
+    domainElement.textContent = domain;
+
+    const removeButton =
+      document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className =
+      "remove-domain-button";
+    removeButton.textContent = "Remover";
+
+    removeButton.setAttribute(
+      "aria-label",
+      `Remover ${domain} da blocklist`
+    );
+
+    removeButton.addEventListener(
+      "click",
+      async () => {
+        const updatedDomains = domains.filter(
+          (storedDomain) =>
+            storedDomain !== domain
+        );
+
+        try {
+          await saveBlocklist(updatedDomains);
+          renderBlocklist(updatedDomains);
+
+          showBlocklistMessage(
+            `${domain} removido da blocklist.`,
+            "success"
+          );
+        } catch (error) {
+          showBlocklistMessage(
+            "Não foi possível remover o domínio.",
+            "error"
+          );
+        }
+      }
+    );
+
+    listItem.append(
+      domainElement,
+      removeButton
+    );
+
+    listElement.appendChild(listItem);
+  }
+}
+
+async function initializeBlocklist() {
+  const formElement = document.getElementById(
+    "blocklist-form"
+  );
+  const inputElement = document.getElementById(
+    "blocklist-input"
+  );
+
+  try {
+    const storedData =
+      await browser.storage.local.get(
+        "customBlocklist"
+      );
+
+    const storedDomains = Array.isArray(
+      storedData.customBlocklist
+    )
+      ? storedData.customBlocklist
+          .map(normalizeBlockedDomain)
+          .filter(Boolean)
+      : [];
+
+    const uniqueDomains = [
+      ...new Set(storedDomains)
+    ];
+
+    renderBlocklist(uniqueDomains);
+
+    formElement.addEventListener(
+      "submit",
+      async (event) => {
+        event.preventDefault();
+
+        const domain =
+          normalizeBlockedDomain(
+            inputElement.value
+          );
+
+        if (!domain) {
+          showBlocklistMessage(
+            "Digite um domínio válido, como exemplo.com.",
+            "error"
+          );
+          return;
+        }
+
+        if (
+          uniqueDomains.includes(domain)
+        ) {
+          showBlocklistMessage(
+            "Esse domínio já está na blocklist.",
+            "error"
+          );
+          return;
+        }
+
+        uniqueDomains.push(domain);
+
+        try {
+          await saveBlocklist(
+            uniqueDomains
+          );
+
+          renderBlocklist(
+            uniqueDomains
+          );
+
+          inputElement.value = "";
+
+          showBlocklistMessage(
+            `${domain} adicionado. Recarregue a página para aplicar.`,
+            "success"
+          );
+        } catch (error) {
+          uniqueDomains.pop();
+
+          showBlocklistMessage(
+            "Não foi possível salvar o domínio.",
+            "error"
+          );
+        }
+      }
+    );
+  } catch (error) {
+    renderBlocklist([]);
+
+    showBlocklistMessage(
+      "Não foi possível carregar a blocklist.",
+      "error"
+    );
   }
 }
 
@@ -473,11 +716,13 @@ function calculatePrivacyScore(pageData) {
   const security = pageData.security || {};
 
   const thirdPartyCookies = cookies.filter(
-    (cookie) => cookie.party === "third-party"
+    (cookie) =>
+      cookie.party === "third-party"
   ).length;
 
   const persistentCookies = cookies.filter(
-    (cookie) => cookie.duration === "persistent"
+    (cookie) =>
+      cookie.duration === "persistent"
   ).length;
 
   const storageCount =
@@ -515,7 +760,8 @@ function calculatePrivacyScore(pageData) {
       label: "Cookies de risco",
       points: Math.min(
         20,
-        thirdPartyCookies * 3 + persistentCookies
+        thirdPartyCookies * 3 +
+          persistentCookies
       )
     },
     {
@@ -530,13 +776,17 @@ function calculatePrivacyScore(pageData) {
       points: Math.min(
         20,
         trackingParameters * 2 +
-          (tracking.bounceDetected === true ? 10 : 0)
+          (tracking.bounceDetected === true
+            ? 10
+            : 0)
       )
     },
     {
       label: "Canvas fingerprinting",
       points:
-        canvas.detected === true ? 15 : 0
+        canvas.detected === true
+          ? 15
+          : 0
     },
     {
       label: "Hijacking/hook",
@@ -554,7 +804,10 @@ function calculatePrivacyScore(pageData) {
   );
 
   return {
-    score: Math.max(0, 100 - totalDeduction),
+    score: Math.max(
+      0,
+      100 - totalDeduction
+    ),
     deductions
   };
 }
@@ -563,18 +816,20 @@ function renderPrivacyScore(pageData) {
   const scoreSection =
     document.querySelector(".score");
 
-  const scoreElement = document.getElementById(
-    "privacy-score"
-  );
+  const scoreElement =
+    document.getElementById(
+      "privacy-score"
+    );
 
   const classificationElement =
     document.getElementById(
       "score-classification"
     );
 
-  const breakdownElement = document.getElementById(
-    "score-breakdown"
-  );
+  const breakdownElement =
+    document.getElementById(
+      "score-breakdown"
+    );
 
   scoreSection.classList.remove(
     "score-good",
@@ -587,18 +842,25 @@ function renderPrivacyScore(pageData) {
 
   if (!pageData) {
     scoreElement.textContent = "--";
+
     classificationElement.textContent =
       "Aguardando análise";
 
-    const listItem = document.createElement("li");
+    const listItem =
+      document.createElement("li");
+
     listItem.textContent =
       "A pontuação começa em 100.";
 
-    breakdownElement.appendChild(listItem);
+    breakdownElement.appendChild(
+      listItem
+    );
+
     return;
   }
 
-  const result = calculatePrivacyScore(pageData);
+  const result =
+    calculatePrivacyScore(pageData);
 
   let classification;
   let scoreClass;
@@ -607,32 +869,47 @@ function renderPrivacyScore(pageData) {
     classification = "Boa privacidade";
     scoreClass = "score-good";
   } else if (result.score >= 60) {
-    classification = "Privacidade moderada";
+    classification =
+      "Privacidade moderada";
     scoreClass = "score-moderate";
   } else if (result.score >= 40) {
-    classification = "Atenção necessária";
+    classification =
+      "Atenção necessária";
     scoreClass = "score-warning";
   } else {
-    classification = "Privacidade crítica";
+    classification =
+      "Privacidade crítica";
     scoreClass = "score-critical";
   }
 
   scoreElement.textContent = result.score;
+
   classificationElement.textContent =
     classification;
 
-  scoreSection.classList.add(scoreClass);
+  scoreSection.classList.add(
+    scoreClass
+  );
 
-  for (const deduction of result.deductions) {
-    const listItem = document.createElement("li");
+  for (
+    const deduction
+    of result.deductions
+  ) {
+    const listItem =
+      document.createElement("li");
 
     const labelElement =
       document.createElement("span");
-    labelElement.textContent = deduction.label;
+
+    labelElement.textContent =
+      deduction.label;
 
     const pointsElement =
       document.createElement("span");
-    pointsElement.className = "score-deduction";
+
+    pointsElement.className =
+      "score-deduction";
+
     pointsElement.textContent =
       deduction.points > 0
         ? `-${deduction.points}`
@@ -643,28 +920,39 @@ function renderPrivacyScore(pageData) {
       pointsElement
     );
 
-    breakdownElement.appendChild(listItem);
+    breakdownElement.appendChild(
+      listItem
+    );
   }
 }
 
 async function loadPageData() {
-  const siteElement = document.getElementById(
-    "current-site"
-  );
+  const siteElement =
+    document.getElementById(
+      "current-site"
+    );
 
-  const thirdPartyElement = document.getElementById(
-    "third-party-count"
-  );
+  const thirdPartyElement =
+    document.getElementById(
+      "third-party-count"
+    );
 
-  const statusElement = document.getElementById(
-    "status-message"
-  );
+  const statusElement =
+    document.getElementById(
+      "status-message"
+    );
+
+  const blockedRequestElement =
+    document.getElementById(
+      "blocked-request-count"
+    );
 
   try {
-    const tabs = await browser.tabs.query({
-      active: true,
-      currentWindow: true
-    });
+    const tabs =
+      await browser.tabs.query({
+        active: true,
+        currentWindow: true
+      });
 
     const currentTab = tabs[0];
 
@@ -678,7 +966,8 @@ async function loadPageData() {
       );
     }
 
-    const currentUrl = new URL(currentTab.url);
+    const currentUrl =
+      new URL(currentTab.url);
 
     if (
       !["http:", "https:"].includes(
@@ -693,15 +982,23 @@ async function loadPageData() {
     siteElement.textContent =
       currentUrl.hostname;
 
-    const storageKey = `tab-${currentTab.id}`;
+    const storageKey =
+      `tab-${currentTab.id}`;
 
     const storedData =
-      await browser.storage.local.get(storageKey);
+      await browser.storage.local.get(
+        storageKey
+      );
 
-    const pageData = storedData[storageKey];
+    const pageData =
+      storedData[storageKey];
 
     if (!pageData) {
-      thirdPartyElement.textContent = "0";
+      thirdPartyElement.textContent =
+        "0";
+
+      blockedRequestElement.textContent =
+        "0";
 
       renderThirdPartyDomains([]);
       renderCookies([]);
@@ -717,11 +1014,12 @@ async function loadPageData() {
       return;
     }
 
-    const thirdPartyDomains = Array.isArray(
-      pageData.thirdPartyDomains
-    )
-      ? pageData.thirdPartyDomains
-      : [];
+    const thirdPartyDomains =
+      Array.isArray(
+        pageData.thirdPartyDomains
+      )
+        ? pageData.thirdPartyDomains
+        : [];
 
     const cookies = Array.isArray(
       pageData.cookies
@@ -729,24 +1027,47 @@ async function loadPageData() {
       ? pageData.cookies
       : [];
 
-    const storage = pageData.storage || {};
-    const canvas = pageData.canvas || {};
-    const tracking = pageData.tracking || {};
-    const security = pageData.security || {};
+    const storage =
+      pageData.storage || {};
+
+    const canvas =
+      pageData.canvas || {};
+
+    const tracking =
+      pageData.tracking || {};
+
+    const security =
+      pageData.security || {};
+
+    const blockedRequests =
+      Number.isInteger(
+        pageData.blockedRequests
+      )
+        ? pageData.blockedRequests
+        : 0;
 
     const storageCount =
-      (Array.isArray(storage.localStorage)
+      (Array.isArray(
+        storage.localStorage
+      )
         ? storage.localStorage.length
         : 0) +
-      (Array.isArray(storage.sessionStorage)
+      (Array.isArray(
+        storage.sessionStorage
+      )
         ? storage.sessionStorage.length
         : 0) +
-      (Array.isArray(storage.indexedDB)
+      (Array.isArray(
+        storage.indexedDB
+      )
         ? storage.indexedDB.length
         : 0);
 
     thirdPartyElement.textContent =
       thirdPartyDomains.length;
+
+    blockedRequestElement.textContent =
+      blockedRequests;
 
     renderThirdPartyDomains(
       thirdPartyDomains
@@ -775,7 +1096,11 @@ async function loadPageData() {
     siteElement.textContent =
       "Página não disponível";
 
-    thirdPartyElement.textContent = "0";
+    thirdPartyElement.textContent =
+      "0";
+
+    blockedRequestElement.textContent =
+      "0";
 
     renderThirdPartyDomains([]);
     renderCookies([]);
@@ -785,11 +1110,15 @@ async function loadPageData() {
     renderSecurity();
     renderPrivacyScore();
 
-    statusElement.textContent = error.message;
+    statusElement.textContent =
+      error.message;
   }
 }
 
 document.addEventListener(
   "DOMContentLoaded",
-  loadPageData
+  () => {
+    loadPageData();
+    initializeBlocklist();
+  }
 );
