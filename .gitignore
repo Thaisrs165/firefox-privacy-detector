@@ -1,0 +1,14 @@
+# Arquivos gerados pelo macOS
+.DS_Store
+**/.DS_Store
+__MACOSX/
+
+# Pacotes gerados para entrega
+*.zip
+
+# Artefatos do web-ext
+web-ext-artifacts/
+
+# Configurações locais de editores
+.vscode/
+.idea/
